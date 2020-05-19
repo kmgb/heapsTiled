@@ -11,6 +11,8 @@ class TObject {
 	public var cwid(get,never) : Int; inline function get_cwid() return Std.int(wid/tmap.tileWid);
 	public var chei(get,never) : Int; inline function get_chei() return Std.int(hei/tmap.tileHei);
 	public var ellipse = false;
+	public var polygon = false;
+	public var polygonPoints:Array<{x:Int, y:Int}>;
 
 	public var centerX(get,never) : Int; inline function get_centerX() return Std.int(x+wid*0.5);
 	public var centerY(get,never) : Int; inline function get_centerY() return Std.int(y+hei*0.5);
@@ -30,6 +32,8 @@ class TObject {
 		this.y = y;
 		wid = w;
 		hei = h;
+
+		polygonPoints = new Array();
 	}
 
 	public function toString() {
@@ -39,7 +43,13 @@ class TObject {
 	public inline function isPoint() return !isTile() && wid<=0 && hei<=0;
 	public inline function isRect() return !isTile() && wid>0 && hei>0 && !ellipse;
 	public inline function isEllipse() return !isTile() && wid>0 && hei>0 && ellipse;
+	public inline function isPolygon() return !isTile() && wid==0 && hei==0 && !ellipse && polygon;
 	public inline function isTile() return tileId!=null;
+
+	public function addPolygonPoint(x:Int, y:Int) {
+		polygonPoints.push({x : x, y : y});
+		trace(polygonPoints);
+	}
 
 	public inline function rectContains(xx:Float, yy:Float) {
 		return isRect() && xx>=x && xx<x+wid && yy>=y && yy<y+hei;

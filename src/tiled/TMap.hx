@@ -90,6 +90,20 @@ class TMap {
 						e.hei = tileHei;
 					}
 				}
+				else if (o.hasNode.polygon) {
+					e.polygon = true;
+
+					var polygon = o.node.polygon;
+					trace(polygon.att.points);
+
+					var arr = polygon.att.points.split(" ");
+					for (a in arr) {
+						var points = a.split(",");
+						trace(points);
+
+						e.addPolygonPoint(Std.parseInt(points[0]), Std.parseInt(points[1]));
+					}
+				}
 
 				// Properties
 				if( o.hasNode.properties )
