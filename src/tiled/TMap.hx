@@ -1,14 +1,15 @@
 package tiled;
 
+import tiled.com.TObject.TShape;
 import tiled.com.*;
 
 @:allow(tiled.com.TObject)
 @:allow(tiled.com.TLayer)
 class TMap {
-	public var wid : Int;
-	public var hei : Int;
-	public var tileWid : Int;
-	public var tileHei : Int;
+	public var width(default, null):Int;
+	public var height(default, null):Int;
+	public var tileWidth(default, null):Int;
+	public var tileHeight(default, null):Int;
 
 	public var tilesets : Array<TTileset> = [];
 	public var layers : Array<TLayer> = [];
@@ -29,10 +30,10 @@ class TMap {
 		var xml = new haxe.xml.Access( Xml.parse(tmxRes.entry.getText()) );
 		xml = xml.node.map;
 
-		wid = Std.parseInt( xml.att.width );
-		hei = Std.parseInt( xml.att.height );
-		tileWid = Std.parseInt( xml.att.tilewidth );
-		tileHei = Std.parseInt( xml.att.tileheight );
+		width = Std.parseInt( xml.att.width );
+		height = Std.parseInt( xml.att.height );
+		tileWidth = Std.parseInt( xml.att.tilewidth );
+		tileHeight = Std.parseInt( xml.att.tileheight );
 		bgColor = xml.has.backgroundcolor ? htmlHexToInt(xml.att.backgroundcolor) : null;
 
 		// Parse tilesets
@@ -70,46 +71,54 @@ class TMap {
 		// Parse objects
 		for(ol in xml.nodes.objectgroup) {
 			objects.set(ol.att.name, []);
+
 			for(o in ol.nodes.object) {
-				var e = new TObject(this, Std.parseInt(o.att.x), Std.parseInt(o.att.y));
-				if( o.has.width ) e.wid = Std.parseInt( o.att.width );
-				if( o.has.height ) e.hei = Std.parseInt( o.att.height );
-				if( o.has.name ) e.name = o.att.name;
-				if( o.has.type ) e.type = o.att.type;
-				if( o.has.gid ) {
-					e.tileId = Std.parseInt( o.att.gid );
-					e.y-=e.hei; // fix stupid bottom-left based coordinate
-				}
-				else if( o.hasNode.ellipse ) {
-					e.ellipse = true;
-					if( e.wid==0 ) {
-						// Fix 0-sized ellipses
-						e.x-=tileWid>>1;
-						e.y-=tileHei>>1;
-						e.wid = tileWid;
-						e.hei = tileHei;
-					}
-				}
-				else if (o.hasNode.polygon) {
-					e.polygon = true;
+                var shape:TShape = Point;
+                var width:Float = 0;
+                var height:Float = 0;
 
-					var polygon = o.node.polygon;
-					trace(polygon.att.points);
+                // All objects should have coordinates
+                var x = Std.parseFloat(o.att.x);
+                var y = Std.parseFloat(o.att.y);
 
-					var arr = polygon.att.points.split(" ");
-					for (a in arr) {
-						var points = a.split(",");
-						trace(points);
+                if (o.hasNode.ellipse) {
+                    var rotation = 0.0;
+                    // TODO: Check if rotation attribute exists
 
-						e.addPolygonPoint(Std.parseInt(points[0]), Std.parseInt(points[1]));
-					}
-				}
+                    shape = Ellipse(Std.parseFloat(o.att.width),
+                                    Std.parseFloat(o.att.height),
+                                    rotation);
+                                    
+                } else if (o.hasNode.polygon) {
+                    var points = new Array<{x:Float, y:Float}>();
+                    var arr = o.node.polygon.att.points.split(" ");
+                    for (a in arr) {
+                        var point = a.split(",");
+                        points.push({x:Std.parseFloat(point[0]), y:Std.parseFloat(point[1])});
+                    }
+                    
+                    shape = Polygon(points);
+                } else if (o.has.width && o.has.height) {
+                    var rotation = 0.0;
+                    // TODO: Check if rotation attribute exists
+
+                    shape = Rectangle(Std.parseFloat(o.att.width),
+                                    Std.parseFloat(o.att.height),
+                                    rotation);
+                }
+
+				var tobj = new TObject(this, x, y, shape);
+				if (o.has.name) tobj.name = o.att.name;
+				if (o.has.type) tobj.type = o.att.type;
 
 				// Properties
-				if( o.hasNode.properties )
-					for(p in o.node.properties.nodes.property)
-						e.setProp(p.att.name, p.att.value);
-				objects.get(ol.att.name).push(e);
+				if( o.hasNode.properties ) {
+					for(p in o.node.properties.nodes.property) {
+						tobj.setProp(p.att.name, p.att.value);
+					}
+				}
+
+				objects.get(ol.att.name).push(tobj);
 			}
 		}
 
@@ -151,14 +160,14 @@ class TMap {
 		if( !objects.exists(layer) )
 			return [];
 
-		return objects.get(layer).filter( function(o) return o.isPoint() && ( type==null || o.type==type ) );
+		return objects.get(layer).filter( function(o) return o.shape.match(Point) && ( type==null || o.type==type ) );
 	}
 
 	public function getRectObjects(layer:String, ?type:String) : Array<TObject> {
 		if( !objects.exists(layer) )
 			return [];
 
-		return objects.get(layer).filter( function(o) return o.isRect() && ( type==null || o.type==type ) );
+		return objects.get(layer).filter( function(o) return o.shape.match(Rectangle(_, _, _)) && ( type==null || o.type==type ) );
 	}
 
 
@@ -169,19 +178,19 @@ class TMap {
 		for(id in l.getIds()) {
 			if( id!=0 ) {
 				var b = new h2d.Bitmap(getTile(id), wrapper);
-				b.setPosition(cx*tileWid, cy*tileHei);
+				b.setPosition(cx*tileWidth, cy*tileHeight);
 				if( l.isXFlipped(cx,cy) ) {
 					b.scaleX = -1;
-					b.x+=tileWid;
+					b.x+=tileWidth;
 				}
 				if( l.isYFlipped(cx,cy) ) {
 					b.scaleY = -1;
-					b.y+=tileHei;
+					b.y+=tileHeight;
 				}
 			}
 
 			cx++;
-			if( cx>=wid ) {
+			if( cx>=width ) {
 				cx = 0;
 				cy++;
 			}
@@ -198,12 +207,12 @@ class TMap {
 			if( id!=0 )
 				out.push({
 					t : getTile(id),
-					x : cx*tileWid,
-					y : cy*tileHei,
+					x : cx*tileWidth,
+					y : cy*tileHeight,
 				});
 
 			cx++;
-			if( cx>=wid ) {
+			if( cx>=width ) {
 				cx = 0;
 				cy++;
 			}

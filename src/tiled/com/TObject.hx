@@ -1,59 +1,42 @@
 package tiled.com;
 
+enum TShape {
+	Point;
+	Rectangle(w:Float, h:Float, rotation:Float);
+	Ellipse(w:Float, h:Float, rotation:Float);
+	Polygon(points:Array<{x:Float, y:Float}>);
+}
+
 class TObject {
 	var tmap : TMap;
 	public var name : Null<String>;
 	public var type : Null<String>;
-	public var x : Int;
-	public var y : Int;
-	public var wid = 0;
-	public var hei = 0;
-	public var cwid(get,never) : Int; inline function get_cwid() return Std.int(wid/tmap.tileWid);
-	public var chei(get,never) : Int; inline function get_chei() return Std.int(hei/tmap.tileHei);
-	public var ellipse = false;
-	public var polygon = false;
-	public var polygonPoints:Array<{x:Int, y:Int}>;
 
-	public var centerX(get,never) : Int; inline function get_centerX() return Std.int(x+wid*0.5);
-	public var centerY(get,never) : Int; inline function get_centerY() return Std.int(y+hei*0.5);
+	// Coordinates in pixels
+	public var x : Float;
+	public var y : Float;
 
-	public var cx(get,never) : Int; inline function get_cx() return Std.int(x/tmap.tileWid);
-	public var cy(get,never) : Int; inline function get_cy() return Std.int(y/tmap.tileHei);
-
-	public var xr(get,never) : Float; inline function get_xr() return (x-cx*tmap.tileWid) / tmap.tileWid;
-	public var yr(get,never) : Float; inline function get_yr() return (y-cy*tmap.tileHei) / tmap.tileHei;
+	// Coordinates in tiles
+	public var cx(get,never) : Float; inline function get_cx() return x / tmap.tileWidth;
+	public var cy(get,never) : Float; inline function get_cy() return y / tmap.tileHeight;
 
 	public var tileId : Null<Int>;
 	var props : Map<String,String> = new Map();
 
-	public function new(m:TMap, x:Int, y:Int, ?w=0, ?h=0) {
+	public var shape(default, null):TShape;
+
+	public function new(m:TMap, x:Float, y:Float, shape:TShape) {
 		tmap = m;
 		this.x = x;
 		this.y = y;
-		wid = w;
-		hei = h;
-
-		polygonPoints = new Array();
+		this.shape = shape;
 	}
 
 	public function toString() {
-		return 'Obj:$name($type)@$cx,$cy' + (wid>0 ? ' / $wid x $hei' : "");
+		return 'Obj:$name($type)@$shape';
 	}
 
-	public inline function isPoint() return !isTile() && wid<=0 && hei<=0;
-	public inline function isRect() return !isTile() && wid>0 && hei>0 && !ellipse;
-	public inline function isEllipse() return !isTile() && wid>0 && hei>0 && ellipse;
-	public inline function isPolygon() return !isTile() && wid==0 && hei==0 && !ellipse && polygon;
 	public inline function isTile() return tileId!=null;
-
-	public function addPolygonPoint(x:Int, y:Int) {
-		polygonPoints.push({x : x, y : y});
-		trace(polygonPoints);
-	}
-
-	public inline function rectContains(xx:Float, yy:Float) {
-		return isRect() && xx>=x && xx<x+wid && yy>=y && yy<y+hei;
-	}
 
 	public function getLocalTileId() {
 		var l = tmap.getTileSet(tileId);
@@ -71,8 +54,6 @@ class TObject {
 			return null;
 		return l.getTile(tileId);
 	}
-
-
 
 	public function setProp(name, v) {
 		props.set(name, v);
