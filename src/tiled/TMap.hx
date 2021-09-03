@@ -83,12 +83,14 @@ class TMap {
 
                 if (o.hasNode.ellipse) {
                     var rotation = 0.0;
-                    // TODO: Check if rotation attribute exists
+                    if (o.has.rotation) {
+						rotation = degToRad(Std.parseFloat(o.att.rotation));
+					}
 
                     shape = Ellipse(Std.parseFloat(o.att.width),
                                     Std.parseFloat(o.att.height),
                                     rotation);
-                                    
+
                 } else if (o.hasNode.polygon) {
                     var points = new Array<{x:Float, y:Float}>();
                     var arr = o.node.polygon.att.points.split(" ");
@@ -96,11 +98,13 @@ class TMap {
                         var point = a.split(",");
                         points.push({x:Std.parseFloat(point[0]), y:Std.parseFloat(point[1])});
                     }
-                    
+
                     shape = Polygon(points);
                 } else if (o.has.width && o.has.height) {
                     var rotation = 0.0;
-                    // TODO: Check if rotation attribute exists
+					if (o.has.rotation) {
+						rotation = degToRad(Std.parseFloat(o.att.rotation));
+					}
 
                     shape = Rectangle(Std.parseFloat(o.att.width),
                                     Std.parseFloat(o.att.height),
@@ -278,5 +282,13 @@ class TMap {
 	public function getPropBool(name) : Bool {
 		var v = getPropStr(name);
 		return v=="true";
+	}
+
+	public inline static function radToDeg(rad:Float):Float {
+		return 180 / Math.PI * rad;
+	}
+
+	public inline static function degToRad(deg:Float):Float {
+		return Math.PI / 180 * deg;
 	}
 }
