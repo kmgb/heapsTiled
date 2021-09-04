@@ -269,19 +269,19 @@ class TMap {
 		return props.get(name);
 	}
 
-	public function getPropInt(name) : Int {
+	public function getPropInt(name) : Null<Int> {
 		var v = getPropStr(name);
-		return v==null ? 0 : Std.parseInt(v);
+		return v == null ? null : Std.parseInt(v);
 	}
 
-	public function getPropFloat(name) : Float {
+	public function getPropFloat(name) : Null<Float> {
 		var v = getPropStr(name);
-		return v==null ? 0 : Std.parseFloat(v);
+		return v == null ? null : Std.parseFloat(v);
 	}
 
-	public function getPropBool(name) : Bool {
+	public function getPropBool(name) : Null<Bool> {
 		var v = getPropStr(name);
-		return v=="true";
+		return v == null ? null : v == "true";
 	}
 
 	public inline static function radToDeg(rad:Float):Float {
